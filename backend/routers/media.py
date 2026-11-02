@@ -437,9 +437,9 @@ async def detect_face(
     Detects speaker face coordinates (cx, cy, w, h) on the video at timestamp.
     Returns normalized coordinates and the frame URL.
     """
-    is_streamer = (streamer_preset or "none") in ["split_top_cam", "pip_corner"]
-    default_cx = 0.85 if is_streamer else 0.5
-    default_cy = 0.78 if is_streamer else 0.35
+    is_streamer = (streamer_preset or "none") in ["split_top_cam", "pip_corner", "split_podcast"]
+    default_cx = 0.85 if (streamer_preset or "none") in ["split_top_cam", "pip_corner"] else (0.28 if (streamer_preset or "none") == "split_podcast" else 0.5)
+    default_cy = 0.78 if (streamer_preset or "none") in ["split_top_cam", "pip_corner"] else 0.35
     default_res = {
         "found": False,
         "cx": default_cx,

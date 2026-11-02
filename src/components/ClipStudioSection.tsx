@@ -605,7 +605,19 @@ export const ClipStudioSection: React.FC<ClipStudioSectionProps> = ({
   const [playerReady, setPlayerReady] = useState<boolean>(false);
 
   // Face & object detection tracking state
-  const [faceBox, setFaceBox] = useState<{ cx: number; cy: number; w: number; h: number; found: boolean; type?: string }>({
+  const [faceBox, setFaceBox] = useState<{
+    cx: number;
+    cy: number;
+    w: number;
+    h: number;
+    found: boolean;
+    type?: string;
+    dual_speakers?: boolean;
+    left_cx?: number;
+    left_cy?: number;
+    right_cx?: number;
+    right_cy?: number;
+  }>({
     cx: 0.5,
     cy: 0.35,
     w: 0.25,
@@ -827,11 +839,19 @@ export const ClipStudioSection: React.FC<ClipStudioSectionProps> = ({
     if (isManualCropX) {
       return Math.max(0, Math.min(100, Math.round(manualCropX)));
     }
-    if (!enableFaceTracking || streamerPreset !== 'none') {
+    if (!enableFaceTracking || (streamerPreset !== 'none' && streamerPreset !== 'split_podcast')) {
       return 50;
     }
-    if (facecamPosition === 'left') return 28;
-    if (facecamPosition === 'right') return 72;
+    if (facecamPosition === 'left') {
+      const leftCx = faceBox?.left_cx ?? 0.28;
+      const cropRatio = Math.max(0.0, Math.min(1.0, (leftCx - 0.158) / 0.684));
+      return Math.round(cropRatio * 100);
+    }
+    if (facecamPosition === 'right') {
+      const rightCx = faceBox?.right_cx ?? 0.72;
+      const cropRatio = Math.max(0.0, Math.min(1.0, (rightCx - 0.158) / 0.684));
+      return Math.round(cropRatio * 100);
+    }
     if (facecamPosition === 'center') return 50;
     if (faceBox && faceBox.found && typeof faceBox.cx === 'number') {
       let safeCx = faceBox.cx;
@@ -963,6 +983,7 @@ export const ClipStudioSection: React.FC<ClipStudioSectionProps> = ({
             enablejsapi: 1,
             iv_load_policy: 3,
             cc_load_policy: 0,
+            cc_lang_pref: 'none',
             autohide: 1,
             start: startSec,
             origin: window.location.origin,
@@ -973,10 +994,21 @@ export const ClipStudioSection: React.FC<ClipStudioSectionProps> = ({
               try {
                 event.target.mute();
                 setIsMuted(true);
-                if (typeof event.target.unloadModule === 'function') {
-                  event.target.unloadModule('captions');
-                  event.target.unloadModule('cc');
-                }
+                const disableCC = (p: any) => {
+                  try {
+                    if (!p) return;
+                    if (typeof p.setOption === 'function') {
+                      p.setOption('captions', 'track', {});
+                      p.setOption('cc', 'track', {});
+                      p.setOption('captions', 'fontSize', -1);
+                    }
+                    if (typeof p.unloadModule === 'function') {
+                      p.unloadModule('captions');
+                      p.unloadModule('cc');
+                    }
+                  } catch (e) {}
+                };
+                disableCC(event.target);
                 event.target.seekTo(clipStart, true);
                 setCurrentTime(clipStart);
               } catch (e) {}
@@ -984,6 +1016,17 @@ export const ClipStudioSection: React.FC<ClipStudioSectionProps> = ({
             onStateChange: (event: any) => {
               if (event.data === 1) {
                 // PLAYING
+                try {
+                  if (typeof event.target.setOption === 'function') {
+                    event.target.setOption('captions', 'track', {});
+                    event.target.setOption('cc', 'track', {});
+                    event.target.setOption('captions', 'fontSize', -1);
+                  }
+                  if (typeof event.target.unloadModule === 'function') {
+                    event.target.unloadModule('captions');
+                    event.target.unloadModule('cc');
+                  }
+                } catch (e) {}
                 setIsPlaying(true);
                 startTracking();
               } else {
@@ -1021,6 +1064,18 @@ export const ClipStudioSection: React.FC<ClipStudioSectionProps> = ({
           if (iframe && iframe.parentElement) {
             const t = previewPlayerRef.current.getCurrentTime();
             if (typeof t === 'number' && !isNaN(t)) {
+              // Ensure YouTube Closed Captions (CC) never pop up during preview playback
+              try {
+                if (typeof previewPlayerRef.current.setOption === 'function') {
+                  previewPlayerRef.current.setOption('captions', 'track', {});
+                  previewPlayerRef.current.setOption('cc', 'track', {});
+                  previewPlayerRef.current.setOption('captions', 'fontSize', -1);
+                }
+                if (typeof previewPlayerRef.current.unloadModule === 'function') {
+                  previewPlayerRef.current.unloadModule('captions');
+                  previewPlayerRef.current.unloadModule('cc');
+                }
+              } catch (e) {}
               setCurrentTime(t);
               if (currentPreviewClip && t >= currentPreviewClip.end_time) {
                 if (isLooping) {
@@ -1637,6 +1692,13 @@ export const ClipStudioSection: React.FC<ClipStudioSectionProps> = ({
         subCenterY: 50,
       };
     }
+    if (preset === 'split_podcast') {
+      return {
+        titleY: lines >= 3 ? 5.0 : 7.0,
+        subtitleY: ratio === '4:3' ? 12.0 : 18.0,
+        subCenterY: 50,
+      };
+    }
     if (ratio === '16:9_landscape') {
       return {
         titleY: lines >= 3 ? 5.5 : lines === 2 ? 6.5 : 8.0,
@@ -1681,7 +1743,7 @@ export const ClipStudioSection: React.FC<ClipStudioSectionProps> = ({
     lines: number,
     preset: StreamerPreset = streamerPreset
   ) => {
-    if (preset === 'split_top_cam') {
+    if (preset === 'split_top_cam' || preset === 'split_podcast') {
       return {
         maxTitleY: 35.0,
         maxSubY: 50.0,
@@ -2297,7 +2359,20 @@ export const ClipStudioSection: React.FC<ClipStudioSectionProps> = ({
                 <div className="horizontal-framing-selector" style={{ marginTop: '0.65rem', paddingLeft: '1.6rem' }}>
                   <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
                     <span>{t.studio.horizontalFramingLabel || 'Horizontal Framing / Focal Point:'}</span>
-                    {faceBox?.found && facecamPosition === 'auto' && (
+                    {faceBox?.dual_speakers && (
+                      <span style={{
+                        fontSize: '0.7rem',
+                        padding: '0.15rem 0.5rem',
+                        borderRadius: '4px',
+                        background: 'rgba(234, 179, 8, 0.15)',
+                        color: '#facc15',
+                        border: '1px solid rgba(234, 179, 8, 0.35)',
+                        fontWeight: 600
+                      }}>
+                        👥 2 Pembicara Terdeteksi (Podcast)
+                      </span>
+                    )}
+                    {faceBox?.found && facecamPosition === 'auto' && !faceBox?.dual_speakers && (
                       <span style={{
                         fontSize: '0.7rem',
                         padding: '0.15rem 0.5rem',
@@ -2379,6 +2454,19 @@ export const ClipStudioSection: React.FC<ClipStudioSectionProps> = ({
                 }}
               >
                 {t.studio.streamerPip}
+              </button>
+              <button
+                type="button"
+                className={`streamer-btn ${streamerPreset === 'split_podcast' ? 'active' : ''}`}
+                onClick={() => {
+                  setStreamerPreset('split_podcast');
+                  const defaults = getDefaultPositions(aspectRatio, titleLineCount, 'split_podcast');
+                  setTitleYPercent(defaults.titleY);
+                  setSubtitleYPercent(defaults.subtitleY);
+                  setIsCustomTitleY(false);
+                }}
+              >
+                🎙️ {t.studio.streamerPodcast || 'Split Podcast (Host Atas / Tamu Bawah)'}
               </button>
             </div>
 
@@ -4725,7 +4813,7 @@ export const ClipStudioSection: React.FC<ClipStudioSectionProps> = ({
                 )}
 
                 {/* Content Box with Live Video Player */}
-                <div className={`wireframe-single-layout ${streamerPreset === 'split_top_cam' ? 'split-active' : ''}`}>
+                <div className={`wireframe-single-layout ${streamerPreset === 'split_top_cam' || streamerPreset === 'split_podcast' ? 'split-active' : ''}`}>
                   {/* Top Facecam Box if split_top_cam */}
                   {streamerPreset === 'split_top_cam' && (
                     <>
@@ -4759,8 +4847,41 @@ export const ClipStudioSection: React.FC<ClipStudioSectionProps> = ({
                     </>
                   )}
 
+                  {/* Top Host Box if split_podcast */}
+                  {streamerPreset === 'split_podcast' && (
+                    <>
+                      <div className={`wireframe-split-cam-box aspect-${aspectRatio.replace(':', '').replace('_', '')}`} style={{ borderColor: 'rgba(245, 158, 11, 0.5)' }}>
+                        <div className="wireframe-facecam-skeleton" style={{ background: 'radial-gradient(circle at center, #2e1d0f 0%, #171008 65%, #050302 100%)' }}>
+                          <div className="skeleton-grid-mesh"></div>
+                          <div className="skeleton-reticle">
+                            <span className="reticle-bracket top-left" style={{ borderColor: '#f59e0b' }}></span>
+                            <span className="reticle-bracket top-right" style={{ borderColor: '#f59e0b' }}></span>
+                            <span className="reticle-bracket bottom-left" style={{ borderColor: '#f59e0b' }}></span>
+                            <span className="reticle-bracket bottom-right" style={{ borderColor: '#f59e0b' }}></span>
+                            <div className="skeleton-avatar" style={{ color: '#f59e0b' }}>
+                              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                              </svg>
+                            </div>
+                          </div>
+                          <div className="skeleton-label-wrap">
+                            <span className="skeleton-main-label" style={{ color: '#fbbf24' }}>🎙️ HOST (ATAS)</span>
+                            <span className="skeleton-sub-label">
+                              {faceBox?.left_cx ? `FOKUS PEMBICARA KIRI (${Math.round(faceBox.left_cx * 100)}%)` : 'FOKUS PEMBICARA KIRI (35%)'}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="wireframe-cam-badge" style={{ borderColor: 'rgba(245, 158, 11, 0.4)', background: 'rgba(245, 158, 11, 0.15)', color: '#fef3c7' }}>
+                          <span className="live-dot" style={{ background: '#f59e0b' }}></span> HOST
+                        </div>
+                      </div>
+                      <div className="wireframe-podcast-divider"></div>
+                    </>
+                  )}
+
                   {/* Content scaled by aspect ratio with real playable video */}
-                  <div className={`wireframe-content-box aspect-${aspectRatio.replace(':', '').replace('_', '')} ${streamerPreset === 'split_top_cam' ? 'split-mode' : ''}`}>
+                  <div className={`wireframe-content-box aspect-${aspectRatio.replace(':', '').replace('_', '')} ${streamerPreset === 'split_top_cam' || streamerPreset === 'split_podcast' ? 'split-mode' : ''}`}>
                     <div className="wireframe-content-inner">
                       {/* HTML5 or YouTube Player slot - ALWAYS STABLY MOUNTED */}
                       {videoUrl && (videoUrl.endsWith('.mp4') || videoUrl.endsWith('.webm') || videoUrl.endsWith('.mov') || videoUrl.endsWith('.mkv') || videoUrl.includes('/api/video') || videoUrl.startsWith('blob:') || videoId?.startsWith('upload_') || videoId?.startsWith('gdrive_')) ? (
@@ -4871,6 +4992,11 @@ export const ClipStudioSection: React.FC<ClipStudioSectionProps> = ({
                       {streamerPreset === 'split_top_cam' && (
                         <div className="wireframe-gameplay-badge">
                           // GAMEPLAY ({aspectRatio})
+                        </div>
+                      )}
+                      {streamerPreset === 'split_podcast' && (
+                        <div className="wireframe-gameplay-badge" style={{ background: 'rgba(236, 72, 153, 0.2)', borderColor: 'rgba(236, 72, 153, 0.4)', color: '#fbcfe8' }}>
+                          🎙️ GUEST / TAMU ({faceBox?.right_cx ? `${Math.round(faceBox.right_cx * 100)}%` : '65%'})
                         </div>
                       )}
                     </div>
@@ -5790,9 +5916,9 @@ export const ClipStudioSection: React.FC<ClipStudioSectionProps> = ({
               gap: '0.5rem',
               margin: '0 0 1.5rem 0',
               padding: '0.85rem 1rem',
-              borderRadius: '10px',
-              background: 'rgba(255, 255, 255, 0.04)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '4px',
+              background: 'var(--bg-surface-elevated)',
+              border: '1px solid var(--border-color)',
               textAlign: 'left',
               fontSize: '0.78rem'
             }}>

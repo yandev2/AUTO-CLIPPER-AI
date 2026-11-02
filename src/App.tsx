@@ -6,13 +6,13 @@ import { CookiesModal } from './components/CookiesModal';
 import { CookieWarningModal } from './components/CookieWarningModal';
 import { ClipTrimmerModal } from './components/ClipTrimmerModal';
 import { AppUpdateModal } from './components/AppUpdateModal';
+import { UserGuideModal } from './components/UserGuideModal';
 import { resilientFetch } from './utils/api';
 import { getStoredCookies, hasStoredCookies } from './utils/cookieUtils';
 import { extractAudioFromVideoClient } from './utils/audioExtractor';
 import { renderClipClientSide, triggerBrowserDownload } from './services/clientRenderer';
 import { renderClipWebCodecs, isWebCodecsGpuSupported } from './services/webcodecsRenderer';
 import { isMobileDevice, requestWakeLock, releaseWakeLock } from './utils/deviceUtils';
-import { LayoutMetricsSync } from './utils/layoutMetricsSync';
 import { useLanguage } from './locales';
 import { HackerApiKeyInput } from './components/HackerApiKeyInput';
 import {
@@ -25,6 +25,7 @@ import {
   ChevronUp,
   Bot,
   Bookmark,
+  BookOpen,
   FileText,
   AlertTriangle,
   Upload,
@@ -33,7 +34,6 @@ import {
   ExternalLink,
   X,
   Trash2,
-  Heart,
   RefreshCw,
   Layers,
   ArrowLeft,
@@ -95,6 +95,7 @@ export default function App() {
   const [isCustomOpenRouterModel, setIsCustomOpenRouterModel] = useState<boolean>(false);
   const [isCookiesModalOpen, setIsCookiesModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [allowAppUpdates, setAllowAppUpdates] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       const host = window.location.hostname;
@@ -2880,7 +2881,7 @@ Transcript:
                     &gt;_
                   </span>
                   <h1 className="logo-title">
-                    CHEAT CLIP PRO
+                    CLIPPER <span className="logo-ai-badge">AI</span>
                   </h1>
                   <span className="status-dot" title="Online"></span>
                 </div>
@@ -2938,16 +2939,17 @@ Transcript:
                   </span>
                 </button>
               )}
-              <LanguageSwitcher />
-              <a
-                href="https://tako.id/johansa"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="header-nav-btn support-btn"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+              <button
+                type="button"
+                className="header-nav-btn"
+                onClick={() => setIsGuideModalOpen(true)}
+                title={t.header.guideBtnTooltip}
               >
-                <Heart size={13} /> {t.header.supportProject}
-              </a>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <BookOpen size={13} /> {t.header.guideBtn}
+                </span>
+              </button>
+              <LanguageSwitcher />
             </div>
           </header>
         </div>
@@ -3355,9 +3357,11 @@ Transcript:
                       position: 'relative',
                       flex: 1,
                       height: '48px',
-                      background: '#060608',
-                      border: '1px solid rgba(255, 0, 255, 0.35)',
-                      boxShadow: '0 0 8px rgba(255, 0, 255, 0.15)',
+                      background: 'var(--bg-main)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: 'var(--radius-md)',
+                      boxShadow: 'var(--shadow-sm)',
+                      overflow: 'hidden',
                       transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
                     }}
                     className="hacker-api-key-container"
@@ -3367,9 +3371,9 @@ Transcript:
                         display: 'flex',
                         alignItems: 'center',
                         padding: '0 0.85rem',
-                        background: 'rgba(255, 0, 255, 0.08)',
-                        borderRight: '1px solid rgba(255, 0, 255, 0.25)',
-                        color: '#ff00ff',
+                        background: 'rgba(139, 92, 246, 0.08)',
+                        borderRight: '1px solid var(--border-color)',
+                        color: 'var(--primary)',
                         fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
                         fontSize: '0.78rem',
                         fontWeight: 700,
@@ -3397,11 +3401,11 @@ Transcript:
                         border: 'none',
                         outline: 'none',
                         padding: '0 0.85rem',
-                        fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                        fontFamily: "var(--font-sans)",
                         fontSize: '0.88rem',
                         fontWeight: 400,
                         color: '#ffffff',
-                        caretColor: '#ff00ff',
+                        caretColor: 'var(--primary)',
                       }}
                     />
                     {url && !loading && (
@@ -3611,9 +3615,11 @@ Transcript:
                       position: 'relative',
                       flex: 1,
                       height: '48px',
-                      background: '#060608',
-                      border: '1px solid rgba(255, 0, 255, 0.35)',
-                      boxShadow: '0 0 8px rgba(255, 0, 255, 0.15)',
+                      background: 'var(--bg-main)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: 'var(--radius-md)',
+                      boxShadow: 'var(--shadow-sm)',
+                      overflow: 'hidden',
                       transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
                     }}
                     className="hacker-api-key-container"
@@ -3623,9 +3629,9 @@ Transcript:
                         display: 'flex',
                         alignItems: 'center',
                         padding: '0 0.85rem',
-                        background: 'rgba(255, 0, 255, 0.08)',
-                        borderRight: '1px solid rgba(255, 0, 255, 0.25)',
-                        color: '#ff00ff',
+                        background: 'rgba(139, 92, 246, 0.08)',
+                        borderRight: '1px solid var(--border-color)',
+                        color: 'var(--primary)',
                         fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
                         fontSize: '0.78rem',
                         fontWeight: 700,
@@ -3653,11 +3659,11 @@ Transcript:
                         border: 'none',
                         outline: 'none',
                         padding: '0 0.85rem',
-                        fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                        fontFamily: "var(--font-sans)",
                         fontSize: '0.88rem',
                         fontWeight: 400,
                         color: '#ffffff',
-                        caretColor: '#ff00ff',
+                        caretColor: 'var(--primary)',
                       }}
                     />
                     {gdriveUrl && !loading && (
@@ -3933,7 +3939,7 @@ Transcript:
 
             <div className="form-settings-grid">
               {/* Card 1: AI Engine Configuration */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', padding: '1.25rem', borderRadius: 0, background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.04)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', padding: '1.25rem', borderRadius: 'var(--radius-lg)', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-color)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3 style={{ fontSize: '0.9rem', color: 'var(--primary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0 }}>
                     [AI] {t.form.aiSettingsTitle}
@@ -3944,7 +3950,7 @@ Transcript:
                 </div>
 
                 {/* Provider Selection Tabs */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', background: '#0a0a0f', padding: '3px', border: '1px solid rgba(255, 0, 255, 0.2)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem', background: 'var(--bg-main)', padding: '4px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
                   <button
                     type="button"
                     onClick={() => {
@@ -3954,16 +3960,17 @@ Transcript:
                     }}
                     style={{
                       padding: '0.55rem 0.75rem',
-                      background: apiProvider === 'gemini' ? '#ff00ff' : 'transparent',
-                      color: apiProvider === 'gemini' ? '#000000' : 'rgba(255, 255, 255, 0.7)',
+                      background: apiProvider === 'gemini' ? 'var(--gradient-primary)' : 'transparent',
+                      color: apiProvider === 'gemini' ? '#ffffff' : 'var(--text-secondary)',
                       border: 'none',
+                      borderRadius: 'var(--radius-sm)',
                       fontWeight: 700,
-                      fontFamily: "'JetBrains Mono', monospace",
-                      fontSize: '0.75rem',
+                      fontFamily: "var(--font-sans)",
+                      fontSize: '0.8rem',
                       cursor: 'pointer',
-                      letterSpacing: '0.04em',
+                      letterSpacing: '0.02em',
                       transition: 'all 0.15s ease',
-                      boxShadow: apiProvider === 'gemini' ? '0 0 10px rgba(255, 0, 255, 0.4)' : 'none',
+                      boxShadow: apiProvider === 'gemini' ? '0 0 12px var(--primary-glow)' : 'none',
                     }}
                   >
                     {t.form.providerGemini}
@@ -3977,16 +3984,17 @@ Transcript:
                     }}
                     style={{
                       padding: '0.55rem 0.75rem',
-                      background: apiProvider === 'openrouter' ? '#ff00ff' : 'transparent',
-                      color: apiProvider === 'openrouter' ? '#000000' : 'rgba(255, 255, 255, 0.7)',
+                      background: apiProvider === 'openrouter' ? 'var(--gradient-primary)' : 'transparent',
+                      color: apiProvider === 'openrouter' ? '#ffffff' : 'var(--text-secondary)',
                       border: 'none',
+                      borderRadius: 'var(--radius-sm)',
                       fontWeight: 700,
-                      fontFamily: "'JetBrains Mono', monospace",
-                      fontSize: '0.75rem',
+                      fontFamily: "var(--font-sans)",
+                      fontSize: '0.8rem',
                       cursor: 'pointer',
-                      letterSpacing: '0.04em',
+                      letterSpacing: '0.02em',
                       transition: 'all 0.15s ease',
-                      boxShadow: apiProvider === 'openrouter' ? '0 0 10px rgba(255, 0, 255, 0.4)' : 'none',
+                      boxShadow: apiProvider === 'openrouter' ? '0 0 12px var(--primary-glow)' : 'none',
                     }}
                   >
                     {t.form.providerOpenRouter}
@@ -6236,16 +6244,13 @@ Transcript:
           </div>
         )}
 
-        {/* Viewport and Hardware Metrics Sync Pipeline */}
-        <LayoutMetricsSync />
-
         {/* Transcript Language Confirmation Notice Modal before Hack Clips */}
         {showLanguageConfirmModal && (
           <div className="custom-confirm-modal-overlay" style={{ zIndex: 10000 }}>
-            <div className="custom-confirm-modal-card" style={{ maxWidth: '520px', textAlign: 'left', alignItems: 'stretch', background: '#0a0910', border: '1.5px solid #ff00ff', boxShadow: '0 0 35px rgba(255, 0, 255, 0.35)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #272238', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+            <div className="custom-confirm-modal-card" style={{ maxWidth: '520px', textAlign: 'left', alignItems: 'stretch' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ color: '#ff1e27', fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '1rem' }}>&gt;_</span>
+                  <span style={{ color: 'var(--primary)', fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '1rem' }}>&gt;_</span>
                   <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '0.86rem', color: '#fff', letterSpacing: '0.04em' }}>
                     SYS // KONFIRMASI BAHASA AUDIO VIDEO
                   </span>
@@ -6261,7 +6266,7 @@ Transcript:
               </div>
 
               <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '1.25rem' }}>
-                Cheat Clip Pro akan mengambil subtitle/transkrip otomatis dari YouTube sesuai bahasa yang Anda pilih.
+                Clipper AI akan mengambil subtitle/transkrip otomatis dari YouTube sesuai bahasa yang Anda pilih.
                 Pastikan audio video ini sesuai agar deteksi momen viral AI tidak meleset:
               </p>
 
@@ -6281,20 +6286,21 @@ Transcript:
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '0.5rem',
-                      padding: '0.85rem',
+                      padding: '0.75rem',
                       fontFamily: 'var(--font-mono)',
                       fontWeight: 700,
-                      fontSize: '0.88rem',
+                      fontSize: '0.86rem',
                       cursor: 'pointer',
-                      background: transcriptLanguage === 'en' ? 'rgba(255, 0, 255, 0.12)' : '#0d0d14',
-                      border: transcriptLanguage === 'en' ? '2px solid #ff00ff' : '1px solid #272238',
-                      color: transcriptLanguage === 'en' ? '#ff00ff' : 'var(--text-muted)',
-                      boxShadow: transcriptLanguage === 'en' ? '0 0 15px rgba(255, 0, 255, 0.3)' : 'none'
+                      borderRadius: '4px',
+                      background: transcriptLanguage === 'en' ? 'rgba(139, 92, 246, 0.16)' : 'var(--bg-surface-elevated)',
+                      border: transcriptLanguage === 'en' ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+                      color: transcriptLanguage === 'en' ? '#ffffff' : 'var(--text-secondary)',
+                      boxShadow: 'none'
                     }}
                   >
                     <span>[EN]</span>
                     <span>ENGLISH</span>
-                    {transcriptLanguage === 'en' && <span style={{ color: '#ff00ff', marginLeft: '0.25rem' }}>✓</span>}
+                    {transcriptLanguage === 'en' && <span style={{ color: 'var(--primary)', marginLeft: '0.25rem' }}>✓</span>}
                   </button>
                   <button
                     type="button"
@@ -6307,20 +6313,21 @@ Transcript:
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '0.5rem',
-                      padding: '0.85rem',
+                      padding: '0.75rem',
                       fontFamily: 'var(--font-mono)',
                       fontWeight: 700,
-                      fontSize: '0.88rem',
+                      fontSize: '0.86rem',
                       cursor: 'pointer',
-                      background: transcriptLanguage === 'id' ? 'rgba(255, 0, 255, 0.12)' : '#0d0d14',
-                      border: transcriptLanguage === 'id' ? '2px solid #ff00ff' : '1px solid #272238',
-                      color: transcriptLanguage === 'id' ? '#ff00ff' : 'var(--text-muted)',
-                      boxShadow: transcriptLanguage === 'id' ? '0 0 15px rgba(255, 0, 255, 0.3)' : 'none'
+                      borderRadius: '4px',
+                      background: transcriptLanguage === 'id' ? 'rgba(139, 92, 246, 0.16)' : 'var(--bg-surface-elevated)',
+                      border: transcriptLanguage === 'id' ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+                      color: transcriptLanguage === 'id' ? '#ffffff' : 'var(--text-secondary)',
+                      boxShadow: 'none'
                     }}
                   >
                     <span>[ID]</span>
                     <span>INDONESIA</span>
-                    {transcriptLanguage === 'id' && <span style={{ color: '#ff00ff', marginLeft: '0.25rem' }}>✓</span>}
+                    {transcriptLanguage === 'id' && <span style={{ color: 'var(--primary)', marginLeft: '0.25rem' }}>✓</span>}
                   </button>
                 </div>
               </div>
@@ -6331,7 +6338,7 @@ Transcript:
                   id="skip-lang-check"
                   checked={skipLanguageConfirm}
                   onChange={(e) => setSkipLanguageConfirm(e.target.checked)}
-                  style={{ width: '16px', height: '16px', accentColor: '#ff00ff', cursor: 'pointer' }}
+                  style={{ width: '16px', height: '16px', accentColor: 'var(--primary)', cursor: 'pointer' }}
                 />
                 <label htmlFor="skip-lang-check" style={{ cursor: 'pointer' }}>
                   Jangan tampilkan konfirmasi ini lagi (ingat untuk sesi ini)
@@ -6343,7 +6350,7 @@ Transcript:
                   type="button"
                   className="btn-confirm-cancel"
                   onClick={() => setShowLanguageConfirmModal(false)}
-                  style={{ padding: '0.65rem 1.25rem', fontFamily: 'var(--font-mono)' }}
+                  style={{ padding: '0.65rem 1.25rem', fontFamily: 'var(--font-mono)', borderRadius: '4px' }}
                 >
                   [ BATAL ]
                 </button>
@@ -6354,9 +6361,9 @@ Transcript:
                     setShowLanguageConfirmModal(false);
                     handleAnalyze();
                   }}
-                  style={{ padding: '0.65rem 1.75rem' }}
+                  style={{ padding: '0.65rem 1.5rem', borderRadius: '4px' }}
                 >
-                  [ LANJUTKAN HACK CLIPS → ]
+                  [ LANJUTKAN ANALISIS → ]
                 </button>
               </div>
             </div>
@@ -6389,6 +6396,12 @@ Transcript:
         <AppUpdateModal
           isOpen={isUpdateModalOpen}
           onClose={() => setIsUpdateModalOpen(false)}
+        />
+
+        {/* User Guide & System Architecture Modal */}
+        <UserGuideModal
+          isOpen={isGuideModalOpen}
+          onClose={() => setIsGuideModalOpen(false)}
         />
 
         {/* Clip Trimmer & Context Editor Modal */}
@@ -6427,9 +6440,9 @@ Transcript:
                 gap: '0.5rem',
                 margin: '0 0 1.5rem 0',
                 padding: '0.85rem 1rem',
-                borderRadius: 0,
-                background: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '4px',
+                background: 'var(--bg-surface-elevated)',
+                border: '1px solid var(--border-color)',
                 textAlign: 'left',
                 fontSize: '0.78rem'
               }}>

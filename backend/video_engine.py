@@ -959,6 +959,9 @@ def download_clip_segment(
                 *base_cmd,
                 "--download-sections", f"*{t_start_fmt}-{t_end_fmt}",
                 "--force-keyframes-at-cuts",
+                "--no-write-subs",
+                "--no-write-auto-subs",
+                "--no-embed-subs",
                 "-f", "bestvideo[height<=1080]+bestaudio/best[height<=1080]/bestvideo+bestaudio/best",
                 "-N", "4",
                 "--socket-timeout", "20",
@@ -1033,6 +1036,7 @@ def download_clip_segment(
                         "-i", audio_stream,
                         "-t", str(clip_duration),
                         "-map", "0:v:0", "-map", "1:a:0?",
+                        "-sn",
                         *ACTIVE_ENCODER_ARGS,
                         "-c:a", "aac",
                         "-b:a", "192k",
@@ -1072,6 +1076,9 @@ def download_clip_segment(
                     *base_cmd,
                     "--download-sections", f"*{t_start_fmt}-{t_end_fmt}",
                     "--force-keyframes-at-cuts",
+                    "--no-write-subs",
+                    "--no-write-auto-subs",
+                    "--no-embed-subs",
                     "-f", "bestvideo[height<=720]+bestaudio/best[height<=720]/best",
                     "-N", "4",
                     "--socket-timeout", "20",
@@ -1115,6 +1122,9 @@ def download_clip_segment(
                     *base_cmd,
                     "--download-sections", f"*{t_start_fmt}-{t_end_fmt}",
                     "--force-keyframes-at-cuts",
+                    "--no-write-subs",
+                    "--no-write-auto-subs",
+                    "--no-embed-subs",
                     "-f", "bestvideo[height<=480]+bestaudio/best[height<=480]/18/best",
                     "-N", "2",
                     "--socket-timeout", "20",
@@ -1213,6 +1223,9 @@ def download_full_raw_video(
             cmd = [
                 *base_cmd,
                 "--no-colors",
+                "--no-write-subs",
+                "--no-write-auto-subs",
+                "--no-embed-subs",
                 "-f", "bestvideo[height<=1080]+bestaudio/best[height<=1080]/bestvideo+bestaudio/best",
                 "-o", str(output_path),
                 "--merge-output-format", "mp4",
@@ -1814,7 +1827,7 @@ def render_title_overlay_png(
     if target_aspect_ratio == "16:9_landscape":
         content_top = 0
         content_bot = 1080
-    elif streamer_preset == "split_top_cam":
+    elif streamer_preset in ["split_top_cam", "split_podcast"]:
         if target_aspect_ratio == "16:9":
             content_top = 352
             content_bot = 1568
@@ -1851,6 +1864,8 @@ def render_title_overlay_png(
     else:
         if streamer_preset == "split_top_cam":
             effective_title_y_pct = 3.5 if title_line_count >= 3 else 4.5
+        elif streamer_preset == "split_podcast":
+            effective_title_y_pct = 5.0 if title_line_count >= 3 else 7.0
         elif target_aspect_ratio == "1:1":
             effective_title_y_pct = 11.5 if title_line_count >= 3 else (13.5 if title_line_count == 2 else 17.0)
         elif target_aspect_ratio == "4:3":
@@ -2040,7 +2055,7 @@ def generate_ass_file(
     if is_landscape:
         content_top = 0
         content_bot = 1080
-    elif streamer_preset == "split_top_cam":
+    elif streamer_preset in ["split_top_cam", "split_podcast"]:
         if target_aspect_ratio == "16:9":
             content_top = 352
             content_bot = 1568
@@ -2096,6 +2111,8 @@ def generate_ass_file(
     else:
         if streamer_preset == "split_top_cam":
             effective_title_y_pct = 3.5 if title_line_count >= 3 else 4.5
+        elif streamer_preset == "split_podcast":
+            effective_title_y_pct = 5.0 if title_line_count >= 3 else 7.0
         elif target_aspect_ratio == "1:1":
             effective_title_y_pct = 11.5 if title_line_count >= 3 else (13.5 if title_line_count == 2 else 17.0)
         elif target_aspect_ratio == "4:3":
@@ -2123,14 +2140,14 @@ def generate_ass_file(
         if subtitle_y_percent is not None:
             sub_y = int(round(1920 * (1.0 - (float(subtitle_y_percent) / 100.0))))
         else:
-            if streamer_preset == "split_top_cam":
+            if streamer_preset in ["split_top_cam", "split_podcast"]:
                 default_sub_pct = 18.0 if (target_aspect_ratio in ["9:16", "1:1"]) else (10.0 if target_aspect_ratio == "4:3" else 18.0)
                 sub_y = int(round(1920 * (1.0 - (default_sub_pct / 100.0))))
             else:
                 default_sub_y = content_bot + est_sub_h + 12
                 sub_y = default_sub_y
 
-        if streamer_preset == "split_top_cam" or target_aspect_ratio == "9:16":
+        if streamer_preset in ["split_top_cam", "split_podcast"] or target_aspect_ratio == "9:16":
             sub_y = max(60, min(1880, sub_y))
         else:
             min_safe_sub_y = content_bot + est_sub_h + 8
@@ -2479,8 +2496,8 @@ def detect_speaker_face_box(
     elif pos == "right":
         return {"found": True, "cx": 0.65, "cy": 0.35, "w": 0.25, "h": 0.25}
 
-    is_streamer = streamer_preset in ["split_top_cam", "pip_corner"]
-    default_cx = 0.85 if is_streamer else 0.50
+    is_streamer = streamer_preset in ["split_top_cam", "pip_corner", "split_podcast"]
+    default_cx = 0.85 if streamer_preset in ["split_top_cam", "pip_corner"] else (0.28 if streamer_preset == "split_podcast" else 0.50)
     default_cy = 0.78 if is_streamer else 0.35
     default_res = {"found": False, "cx": default_cx, "cy": default_cy, "w": 0.22, "h": 0.25}
 
@@ -2746,11 +2763,51 @@ def detect_speaker_face_box(
                 return {"found": True, "is_corner_cam": True, "cx": 0.50, "cy": 0.35, "w": 0.22, "h": 0.25}
 
             # Check for dual speakers on opposite sides (interviews, podcasts, co-hosts)
-            left_speakers = [c for c in foreground_clusters if c["cx"] < 0.40 and len(c["pts"]) >= 3]
-            right_speakers = [c for c in foreground_clusters if c["cx"] > 0.60 and len(c["pts"]) >= 3]
+            left_speakers = [c for c in foreground_clusters if c["cx"] < 0.45 and len(c["pts"]) >= 2]
+            right_speakers = [c for c in foreground_clusters if c["cx"] > 0.55 and len(c["pts"]) >= 2]
             if left_speakers and right_speakers:
-                mid_cx = (max(left_speakers, key=lambda c: len(c["pts"]))["cx"] + max(right_speakers, key=lambda c: len(c["pts"]))["cx"]) / 2.0
-                return {"found": True, "cx": float(round(mid_cx, 3)), "cy": 0.35, "w": 0.25, "h": 0.25, "dual_speakers": True}
+                best_left = max(left_speakers, key=lambda c: len(c["pts"]))
+                best_right = max(right_speakers, key=lambda c: len(c["pts"]))
+                left_cx = float(round(best_left["cx"], 3))
+                left_cy = float(round(best_left["cy"], 3))
+                right_cx = float(round(best_right["cx"], 3))
+                right_cy = float(round(best_right["cy"], 3))
+
+                # If facecam_position is explicitly requested as left or right, select that speaker
+                if facecam_position == "left":
+                    chosen = best_left
+                elif facecam_position == "right":
+                    chosen = best_right
+                elif facecam_position == "center":
+                    chosen = {"cx": 0.50, "cy": 0.35, "pts": best_left["pts"] + best_right["pts"]}
+                else:
+                    # Auto: Pick the speaker with higher persistence/confidence (never the empty table between them!)
+                    left_weight = len(best_left["pts"]) * sum(p.get("conf", 0.8) for p in best_left["pts"])
+                    right_weight = len(best_right["pts"]) * sum(p.get("conf", 0.8) for p in best_right["pts"])
+                    chosen = best_left if left_weight >= right_weight else best_right
+
+                avg_w = sum(p["w"] for p in chosen["pts"]) / len(chosen["pts"])
+                avg_h = sum(p["h"] for p in chosen["pts"]) / len(chosen["pts"])
+                final_cx = float(chosen["cx"])
+                if not is_streamer:
+                    final_cx = max(0.24, min(0.76, final_cx))
+
+                logger.info(
+                    f"Dual speakers detected (Left={left_cx:.3f}, Right={right_cx:.3f}). "
+                    f"Selected active speaker: {final_cx:.3f} (facecam_position={facecam_position})"
+                )
+                return {
+                    "found": True,
+                    "cx": float(round(final_cx, 3)),
+                    "cy": float(round(chosen.get("cy", 0.35), 3)),
+                    "w": float(round(avg_w, 3)),
+                    "h": float(round(avg_h, 3)),
+                    "dual_speakers": True,
+                    "left_cx": left_cx,
+                    "left_cy": left_cy,
+                    "right_cx": right_cx,
+                    "right_cy": right_cy,
+                }
 
             # Rank foreground candidates by: consistency * size * confidence * center prior
             def score_cluster(c):
@@ -2808,7 +2865,9 @@ def build_ffmpeg_filtergraph(
     ass_subtitles_path: Optional[str] = None,
     face_box: Optional[Dict[str, Any]] = None,
     title_y_percent: Optional[float] = None,
-    crop_x_percent: Optional[float] = None
+    crop_x_percent: Optional[float] = None,
+    title_x_percent: Optional[float] = 50.0,
+    **kwargs
 ) -> Tuple[str, str]:
     """
     Constructs the FFmpeg -filter_complex chain with proper aspect ratio center-cropping.
@@ -2898,6 +2957,67 @@ def build_ffmpeg_filtergraph(
                 f"[cam_raw]crop='{cam_w}':'{cam_h}':'{cam_x}':'{cam_y}',scale=1080:810[cam_box];"
                 f"[game_raw]crop='{game_w}':'{game_h}':'{game_x}':'{game_y}',scale=1080:1110[game_box];"
                 f"[cam_box][game_box]vstack=inputs=2[layout_base]"
+            )
+
+        current_v = "[layout_base]"
+
+    elif streamer_preset == "split_podcast":
+        # Split Podcast Layout (Stacked Host on Top & Guest on Bottom, perfectly filling 1080x1920 in 9:16)
+        left_cx = float(face_box.get("left_cx", 0.28)) if face_box else 0.28
+        right_cx = float(face_box.get("right_cx", 0.72)) if face_box else 0.72
+        top_cx = max(0.12, min(0.88, left_cx))
+        bot_cx = max(0.12, min(0.88, right_cx))
+
+        if aspect_ratio == "16:9":
+            # 16:9 split in 1080x1920: two 1080x608 boxes stacked with blurred/black background
+            cam_h = "ih"
+            cam_w = "min(iw, ih*16/9)"
+            cam1_x = f"max(0, min(iw-ow, iw*{top_cx:.3f}-ow/2))"
+            cam2_x = f"max(0, min(iw-ow, iw*{bot_cx:.3f}-ow/2))"
+            filters.append(
+                f"[0:v]split=2[host_raw][guest_raw];"
+                f"[host_raw]crop='{cam_w}':'{cam_h}':'{cam1_x}':0,scale=1080:608[host_box];"
+                f"[guest_raw]crop='{cam_w}':'{cam_h}':'{cam2_x}':0,scale=1080:608[guest_box];"
+                f"[host_box][guest_box]vstack=inputs=2[both_split]"
+            )
+            if background_style == "blurred":
+                filters.append(
+                    f"[0:v]scale=360:640:force_original_aspect_ratio=increase,crop=360:640,boxblur=12:2,scale=1080:1920,eq=saturation=1.2:contrast=1.05[bg_blurred];"
+                    f"[bg_blurred][both_split]overlay=0:352[layout_base]"
+                )
+            else:
+                filters.append(f"[both_split]pad=1080:1920:0:352:black[layout_base]")
+
+        elif aspect_ratio == "1:1":
+            # 1:1 split: two 960x960 boxes
+            cam_h = "ih"
+            cam_w = "min(iw, ih)"
+            cam1_x = f"max(0, min(iw-ow, iw*{top_cx:.3f}-ow/2))"
+            cam2_x = f"max(0, min(iw-ow, iw*{bot_cx:.3f}-ow/2))"
+            filters.append(
+                f"[0:v]split=2[host_raw][guest_raw];"
+                f"[host_raw]crop='{cam_w}':'{cam_h}':'{cam1_x}':0,scale=960:960[host_box];"
+                f"[guest_raw]crop='{cam_w}':'{cam_h}':'{cam2_x}':0,scale=960:960[guest_box];"
+                f"[host_box][guest_box]vstack=inputs=2[both_split]"
+            )
+            if background_style == "blurred":
+                filters.append(
+                    f"[0:v]scale=360:640:force_original_aspect_ratio=increase,crop=360:640,boxblur=12:2,scale=1080:1920,eq=saturation=1.2:contrast=1.05[bg_blurred];"
+                    f"[bg_blurred][both_split]overlay=60:0[layout_base]"
+                )
+            else:
+                filters.append(f"[both_split]pad=1080:1920:60:0:black[layout_base]")
+
+        else:  # 9:16 Full Bleed Vertical (Two stacked 1080x960 segments = exactly 1080x1920!)
+            cam_w = "min(iw, ih*9/8)"
+            cam_h = "ih"
+            cam1_x = f"max(0, min(iw-ow, iw*{top_cx:.3f}-ow/2))"
+            cam2_x = f"max(0, min(iw-ow, iw*{bot_cx:.3f}-ow/2))"
+            filters.append(
+                f"[0:v]split=2[host_raw][guest_raw];"
+                f"[host_raw]crop='{cam_w}':'{cam_h}':'{cam1_x}':0,scale=1080:960[host_box];"
+                f"[guest_raw]crop='{cam_w}':'{cam_h}':'{cam2_x}':0,scale=1080:960[guest_box];"
+                f"[host_box][guest_box]vstack=inputs=2[layout_base]"
             )
 
         current_v = "[layout_base]"
@@ -3105,8 +3225,8 @@ def build_ffmpeg_filtergraph(
         if title_y_percent is not None:
             canvas_h = 1080 if aspect_ratio == "16:9_landscape" else 1920
             y_pos = int(round(canvas_h * (float(title_y_percent) / 100.0)))
-        elif streamer_preset == "split_top_cam":
-            y_pos = int(round(1920 * 0.045))
+        elif streamer_preset in ["split_top_cam", "split_podcast"]:
+            y_pos = int(round(1920 * (0.05 if streamer_preset == "split_podcast" else 0.045)))
         else:
             y_pos = 80 if aspect_ratio == "16:9_landscape" else (345 if aspect_ratio == "1:1" else (480 if aspect_ratio in ["4:3", "9:16"] else 581))
         box_style = "box=0"
@@ -3176,7 +3296,10 @@ def render_clip_to_mp4(
     original_audio_volume: float = 1.0,
     # Hardware acceleration selection ('auto', 'nvenc', 'amf', 'qsv', 'cpu')
     hardware_accel: Optional[str] = "auto",
-    title_y_percent: Optional[float] = None
+    title_y_percent: Optional[float] = None,
+    crop_x_percent: Optional[float] = None,
+    title_x_percent: Optional[float] = 50.0,
+    **kwargs
 ) -> str:
     """
     Renders the final 1080x1920 short-form video with layout, aspect ratio, titles, subtitles,
@@ -3199,9 +3322,9 @@ def render_clip_to_mp4(
                 "On macOS, install it with 'brew install ffmpeg-full' and restart the backend."
             )
 
-    is_streamer = streamer_preset in ["pip_corner", "split_top_cam"]
-    default_cx = 0.85 if is_streamer else 0.50
-    default_cy = 0.78 if is_streamer else 0.35
+    is_streamer = streamer_preset in ["pip_corner", "split_top_cam", "split_podcast"]
+    default_cx = 0.85 if streamer_preset in ["pip_corner", "split_top_cam"] else (0.28 if streamer_preset == "split_podcast" else 0.50)
+    default_cy = 0.78 if streamer_preset in ["pip_corner", "split_top_cam"] else 0.35
     face_box = {"found": False, "cx": default_cx, "cy": default_cy, "w": 0.22, "h": 0.25}
     if crop_x_percent is not None:
         face_box = {"found": True, "cx": max(0.05, min(0.95, float(crop_x_percent) / 100.0)), "cy": default_cy, "w": 0.22, "h": 0.25}
@@ -3222,7 +3345,8 @@ def render_clip_to_mp4(
         ass_subtitles_path=ass_subtitles_path,
         face_box=face_box,
         title_y_percent=title_y_percent,
-        crop_x_percent=crop_x_percent
+        crop_x_percent=crop_x_percent,
+        title_x_percent=title_x_percent
     )
 
     filter_chains = [filter_complex]
@@ -3391,6 +3515,7 @@ def render_clip_to_mp4(
         "-filter_complex", final_filter_complex,
         "-map", out_video_map,
         "-map", out_audio_map,
+        "-sn",
         *v_codec_args,
         "-c:a", "aac", "-b:a", "192k",
         "-pix_fmt", "yuv420p",
@@ -3430,6 +3555,7 @@ def render_clip_to_mp4(
                 "-filter_complex", final_filter_complex,
                 "-map", out_video_map,
                 "-map", out_audio_map,
+                "-sn",
                 "-c:v", "libx264", "-preset", "veryfast", "-crf", "22", "-threads", "2",
                 "-c:a", "aac", "-b:a", "192k",
                 "-pix_fmt", "yuv420p",

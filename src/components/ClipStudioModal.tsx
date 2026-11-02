@@ -301,6 +301,13 @@ export const ClipStudioModal: React.FC<ClipStudioModalProps> = ({
                 >
                   {t.studio.streamerPip}
                 </button>
+                <button
+                  type="button"
+                  className={`streamer-btn ${streamerPreset === 'split_podcast' ? 'active' : ''}`}
+                  onClick={() => setStreamerPreset('split_podcast')}
+                >
+                  🎙️ {t.studio.streamerPodcast || 'Split Podcast (Host Atas / Tamu Bawah)'}
+                </button>
               </div>
 
               {streamerPreset !== 'none' && (
@@ -645,7 +652,7 @@ export const ClipStudioModal: React.FC<ClipStudioModalProps> = ({
             >
               {/* Background (Black or Blurred) */}
               <div className={`wireframe-bg ${backgroundStyle === 'blurred' && aspectRatio !== '9:16' && aspectRatio !== '16:9_landscape' ? 'blurred-ambient' : 'black-bg'}`}>
-                <div className={`wireframe-single-layout ${streamerPreset === 'split_top_cam' ? 'split-active' : ''}`}>
+                <div className={`wireframe-single-layout ${streamerPreset === 'split_top_cam' || streamerPreset === 'split_podcast' ? 'split-active' : ''}`}>
                   {streamerPreset === 'split_top_cam' && (
                     <>
                       <div className={`wireframe-split-cam-box aspect-${aspectRatio.replace(':', '').replace('_', '')}`}>
@@ -678,7 +685,37 @@ export const ClipStudioModal: React.FC<ClipStudioModalProps> = ({
                     </>
                   )}
 
-                  <div className={`wireframe-content-box aspect-${aspectRatio.replace(':', '').replace('_', '')} ${streamerPreset === 'split_top_cam' ? 'split-mode' : ''}`}>
+                  {streamerPreset === 'split_podcast' && (
+                    <>
+                      <div className={`wireframe-split-cam-box aspect-${aspectRatio.replace(':', '').replace('_', '')}`} style={{ borderColor: 'rgba(245, 158, 11, 0.5)' }}>
+                        <div className="wireframe-facecam-skeleton" style={{ background: 'radial-gradient(circle at center, #2e1d0f 0%, #171008 65%, #050302 100%)' }}>
+                          <div className="skeleton-grid-mesh"></div>
+                          <div className="skeleton-reticle">
+                            <span className="reticle-bracket top-left" style={{ borderColor: '#f59e0b' }}></span>
+                            <span className="reticle-bracket top-right" style={{ borderColor: '#f59e0b' }}></span>
+                            <span className="reticle-bracket bottom-left" style={{ borderColor: '#f59e0b' }}></span>
+                            <span className="reticle-bracket bottom-right" style={{ borderColor: '#f59e0b' }}></span>
+                            <div className="skeleton-avatar" style={{ color: '#f59e0b' }}>
+                              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                              </svg>
+                            </div>
+                          </div>
+                          <div className="skeleton-label-wrap">
+                            <span className="skeleton-main-label" style={{ color: '#fbbf24' }}>🎙️ HOST (ATAS)</span>
+                            <span className="skeleton-sub-label">FOKUS PEMBICARA KIRI</span>
+                          </div>
+                        </div>
+                        <div className="wireframe-cam-badge" style={{ borderColor: 'rgba(245, 158, 11, 0.4)', background: 'rgba(245, 158, 11, 0.15)', color: '#fef3c7' }}>
+                          <span className="live-dot" style={{ background: '#f59e0b' }}></span> HOST
+                        </div>
+                      </div>
+                      <div className="wireframe-podcast-divider"></div>
+                    </>
+                  )}
+
+                  <div className={`wireframe-content-box aspect-${aspectRatio.replace(':', '').replace('_', '')} ${streamerPreset === 'split_top_cam' || streamerPreset === 'split_podcast' ? 'split-mode' : ''}`}>
                     <div className="wireframe-content-inner">
                       <span className="content-ratio-tag">{aspectRatio === '16:9_landscape' ? '16:9 Landscape' : aspectRatio}</span>
                       {streamerPreset === 'pip_corner' && (
@@ -696,6 +733,11 @@ export const ClipStudioModal: React.FC<ClipStudioModalProps> = ({
                       {streamerPreset === 'split_top_cam' && (
                         <div className="wireframe-gameplay-badge">
                           // GAMEPLAY ({aspectRatio})
+                        </div>
+                      )}
+                      {streamerPreset === 'split_podcast' && (
+                        <div className="wireframe-gameplay-badge" style={{ background: 'rgba(236, 72, 153, 0.2)', borderColor: 'rgba(236, 72, 153, 0.4)', color: '#fbcfe8' }}>
+                          🎙️ GUEST / TAMU
                         </div>
                       )}
                     </div>
